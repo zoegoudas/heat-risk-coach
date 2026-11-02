@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heat Risk Coach</title>
+<meta name="description" content="Adaptive Heat Risk Coach: log heat exposure and symptoms, get a personal heat risk score and coaching. By Zoe Goudas.">
+<meta name="theme-color" content="#14232A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314232A'/%3E%3Cpath d='M16 6a3 3 0 0 0-3 3v9.2a5 5 0 1 0 6 0V9a3 3 0 0 0-3-3z' fill='none' stroke='%2339C2A8' stroke-width='2'/%3E%3Ccircle cx='16' cy='22' r='2.6' fill='%23F08A4B'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: dark side rail with the app's pages; content area of cards. On phones the rail becomes a bottom tab bar. */
+  :root {
+    --bg: #F2F5F5;
+    --panel: #FFFFFF;
+    --ink: #15232B;
+    --muted: #5A6A72;
+    --line: #DCE4E6;
+    --rail: #14232A;
+    --rail-ink: #B9C7CC;
+    --teal: #127A6A;
+    --teal-ink: #FFFFFF;
+    --teal-soft: #DDF1EC;
+    --low: #2F8A5B;
+    --mod: #B7810B;
+    --high: #D2602A;
+    --vhigh: #B8322A;
+    --low-soft: #E3F3EA;
+    --mod-soft: #FBF1D9;
+    --high-soft: #FCE6DA;
+    --vhigh-soft: #F9DEDB;
+    --display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+    --body: "Figtree", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  a { color: var(--teal); }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; background: linear-gradient(to right, var(--rail) 232px, transparent 232px); }
+  .rail { background: var(--rail); color: var(--rail-ink); padding: 22px 14px; display: flex; flex-direction: column; gap: 22px; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; gap: 10px; align-items: center; color: #fff; text-decoration: none; padding: 0 6px; }
+  .brand svg { width: 34px; height: 34px; flex: none; }
+  .brand b { display: block; font: 700 17px/1.1 var(--display); }
+  .brand small { color: var(--rail-ink); font-size: 12px; }
+  .nav { display: grid; gap: 2px; }
+  .nav a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--rail-ink); text-decoration: none; font-weight: 500; font-size: 15px; }
+  .nav a svg { width: 18px; height: 18px; flex: none; }
+  .nav a:hover { background: #1D3139; color: #fff; }
+  .nav a[aria-current="page"] { background: #1C3A3A; color: #6FDCC5; }
+  .rail .foot { margin-top: auto; font-size: 12px; line-height: 1.45; padding: 12px; border-radius: 10px; background: #1A2B32; }
+  .rail .foot a { color: #8ADBC9; }
+
+  main { min-width: 0; padding: 32px clamp(16px, 4vw, 44px) 64px; max-width: 1180px; width: 100%; }
+  .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 20px; margin-bottom: 22px; }
+  h1 { font: 700 clamp(26px, 3.4vw, 34px)/1.1 var(--display); margin: 0; letter-spacing: -0.01em; }
+  .page-head p { margin: 4px 0 0; color: var(--muted); }
+  h2 { font: 700 13px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+  h3 { font: 700 18px/1.25 var(--display); margin: 0 0 8px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 9px 16px; font-weight: 600; cursor: pointer; text-decoration: none; color: var(--ink); }
+  .btn:hover { border-color: var(--teal); }
+  .btn.primary { background: var(--teal); border-color: var(--teal); color: var(--teal-ink); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.small { padding: 6px 12px; font-size: 14px; border-radius: 8px; }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.danger { color: var(--vhigh); }
+  .btn[disabled] { opacity: .5; cursor: default; }
+
+  .grid { display: grid; gap: 18px; }
+  .g-top { grid-template-columns: 1.5fr 1fr; }
+  .g-2 { grid-template-columns: 1fr 1fr; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; min-width: 0; }
+  .card.flush { padding: 0; overflow: hidden; }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+
+  /* Conditions */
+  .cond { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .metric { display: flex; gap: 10px; align-items: center; }
+  .metric .ic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+  .metric .ic svg { width: 20px; height: 20px; }
+  .metric small { display: block; color: var(--muted); font-size: 13px; }
+  .metric b { font: 700 24px/1.1 var(--display); }
+  .metric b span { font: 500 14px var(--body); color: var(--muted); margin-left: 2px; }
+  .cond-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+
+  /* Heat index band strip */
+  .bands { margin-top: 16px; }
+  .bandbar { position: relative; display: grid; grid-template-columns: 10fr 13fr 22fr 15fr; height: 10px; border-radius: 99px; overflow: hidden; }
+  .bandbar i:nth-child(1) { background: #F3E3A1; } .bandbar i:nth-child(2) { background: #F2C063; } .bandbar i:nth-child(3) { background: #EE8B4E; } .bandbar i:nth-child(4) { background: #D9473B; }
+  .bandlabels { display: grid; grid-template-columns: 10fr 13fr 22fr 15fr; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .bandmark { position: relative; height: 0; }
+  .bandmark span { position: absolute; top: -17px; width: 3px; height: 14px; background: var(--ink); border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 0 2px #fff; }
+
+  /* Risk card */
+  .risk { border-radius: 16px; padding: 22px; border: 1px solid; display: grid; gap: 12px; align-content: start; }
+  .risk[data-level="Low"] { background: var(--low-soft); border-color: #BFE1CC; --c: var(--low); }
+  .risk[data-level="Moderate"] { background: var(--mod-soft); border-color: #EFD9A2; --c: var(--mod); }
+  .risk[data-level="High"] { background: var(--high-soft); border-color: #F3C0A4; --c: var(--high); }
+  .risk[data-level="Very high"], .risk[data-level="Emergency"] { background: var(--vhigh-soft); border-color: #EDB2AC; --c: var(--vhigh); }
+  .risk[data-level="None"] { background: var(--panel); border-color: var(--line); --c: var(--muted); }
+  .risk .lvl { font: 700 34px/1 var(--display); color: var(--c); }
+  .risk .score { font-size: 15px; color: var(--c); font-weight: 600; }
+  .meter { position: relative; height: 10px; border-radius: 99px; background: rgba(0,0,0,.07); overflow: hidden; }
+  .meter i { position: absolute; inset: 0 auto 0 0; background: var(--c); border-radius: 99px; transition: width .4s; }
+  .factors { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+  .factors li { display: flex; justify-content: space-between; gap: 10px; }
+  .factors li b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Coach */
+  .tips { display: grid; gap: 12px; }
+  .tip { border-radius: 12px; padding: 14px 16px; border: 1px solid; }
+  .tip .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; margin-bottom: 6px; }
+  .tip p { margin: 0; }
+  .tip.preventive { background: #EAF2FC; border-color: #CADCF4; } .tip.preventive .tag { background: #D3E3F8; color: #24508F; }
+  .tip.reactive { background: #FCEBE6; border-color: #F2C9BC; } .tip.reactive .tag { background: #F6D3C8; color: #9A3216; }
+  .tip.adaptive { background: #F1ECFA; border-color: #DCD2F1; } .tip.adaptive .tag { background: #E3D9F6; color: #55349A; }
+  .followup { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .followup p { margin: 0 0 10px; }
+  .fb { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fb .btn.better { color: var(--low); } .fb .btn.worse { color: var(--vhigh); } .fb .btn.same { color: var(--mod); }
+
+  .predict { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .predict .box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; text-align: center; min-width: 88px; }
+  .predict .box small { display: block; font-size: 12px; color: var(--muted); }
+  .predict .box b { font: 700 26px/1.1 var(--display); }
+  .predict .arrow { color: var(--muted); }
+
+  /* Alerts */
+  .alert { border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; display: grid; gap: 6px; border: 1px solid; }
+  .alert.emergency { background: #B3261E; border-color: #B3261E; color: #fff; }
+  .alert.emergency a { color: #fff; font-weight: 700; }
+  .alert.urgent { background: var(--vhigh-soft); border-color: #EDB2AC; color: #7A1E17; }
+  .alert.info { background: var(--teal-soft); border-color: #BFE3DA; color: #0D4F45; }
+  .alert b { font-size: 17px; }
+  .alert p { margin: 0; }
+  .sample-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+
+  /* Forms */
+  .form { display: grid; gap: 18px; max-width: 760px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  label.f { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
+  label.f span.h { font-weight: 400; color: var(--muted); font-size: 13px; }
+  input[type=number], input[type=text], select { width: 100%; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 10px 12px; }
+  input:focus, select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+  .seg button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 10px 8px; cursor: pointer; font-weight: 600; font-size: 14px; display: grid; gap: 2px; }
+  .seg button small { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .seg button[aria-pressed="true"] { border-color: var(--teal); background: var(--teal-soft); color: #0D4F45; box-shadow: inset 0 0 0 1px var(--teal); }
+  .slider { display: grid; gap: 4px; }
+  .slider .top { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; }
+  .slider .top output { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 500; }
+  input[type=range] { width: 100%; accent-color: var(--teal); }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .checks label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; cursor: pointer; font-size: 14px; }
+  .checks input { margin-top: 3px; accent-color: var(--vhigh); }
+  .wx { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .wx .msg { font-size: 14px; color: var(--muted); }
+  .city { display: flex; gap: 8px; flex: 1 1 260px; }
+
+  /* Quick log */
+  .quick { max-width: 560px; margin: 24px auto 0; text-align: center; }
+  .progress { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 8px 0 28px; }
+  .progress i { display: block; height: 100%; background: var(--teal); transition: width .25s; }
+  .quick .q { font: 700 26px/1.2 var(--display); margin: 0 0 6px; }
+  .quick .opts { display: grid; gap: 10px; margin-top: 22px; }
+  .quick .opts button { border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 16px; font-weight: 600; font-size: 17px; cursor: pointer; }
+  .quick .opts button:hover { border-color: var(--teal); background: var(--teal-soft); }
+  .quick .row { display: flex; justify-content: space-between; margin-top: 18px; }
+
+  /* Charts & tables */
+  .chart { width: 100%; height: auto; display: block; }
+  .chart text { fill: var(--muted); font-size: 11px; font-family: var(--body); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .pill[data-level="Low"] { background: var(--low-soft); color: var(--low); }
+  .pill[data-level="Moderate"] { background: var(--mod-soft); color: #8A6107; }
+  .pill[data-level="High"] { background: var(--high-soft); color: #A7461A; }
+  .pill[data-level="Very high"], .pill[data-level="Emergency"] { background: var(--vhigh-soft); color: var(--vhigh); }
+  .insights { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .insights li { padding: 12px 14px; border-radius: 12px; background: var(--bg); }
+  .empty { text-align: center; padding: 36px 16px; color: var(--muted); }
+  .empty h3 { color: var(--ink); }
+
+  .prose { max-width: 70ch; }
+  .prose p, .prose li { line-height: 1.65; }
+  .prose h3 { margin-top: 22px; }
+  .kv { width: 100%; font-size: 14px; }
+  .kv td:last-child { text-align: right; }
+  .guide td { white-space: normal; vertical-align: top; }
+  .guide td:first-child { white-space: nowrap; width: 1%; }
+  .guide td:last-child { text-align: left; }
+
+  /* Welcome */
+  .welcome { max-width: 680px; margin: 6vh auto 0; }
+  .welcome h1 { font-size: clamp(32px, 5vw, 46px); }
+  .welcome .lead { font-size: 19px; color: var(--muted); margin: 12px 0 24px; }
+  .welcome ul { padding-left: 20px; display: grid; gap: 8px; margin: 0 0 26px; }
+  .welcome .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  /* Phone */
+  .mtop { display: none; }
+  .onb .rail, .onb .mtop nav { display: none !important; }
+  .onb .app { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 860px) {
+    .app { grid-template-columns: minmax(0, 1fr); background: none; }
+    .welcome > .brand { display: none; }
+    .rail { position: fixed; inset: auto 0 0 0; height: auto; padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); flex-direction: row; z-index: 20; gap: 0; }
+    .rail .brand, .rail .foot { display: none; }
+    .nav { grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; }
+    .nav a { flex-direction: column; gap: 3px; font-size: 11px; padding: 6px 2px; text-align: center; }
+    .nav a.desk { display: none; }
+    main { padding: 16px 16px 100px; }
+    .mtop { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--rail); color: #fff; position: sticky; top: 0; z-index: 15; }
+    .mtop .brand { padding: 0; }
+    .mtop .brand svg { width: 28px; height: 28px; }
+    .mtop nav { display: flex; gap: 14px; font-size: 14px; }
+    .mtop nav a { color: var(--rail-ink); text-decoration: none; }
+    .g-top, .g-2, .fields { grid-template-columns: minmax(0, 1fr); }
+    .checks { grid-template-columns: minmax(0, 1fr); }
+    .cond { grid-template-columns: minmax(0, 1fr); }
+    .g-top .risk { order: -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* Print report */
+  #report { display: none; }
+  @media print {
+    body { background: #fff; }
+    .app, .mtop { display: none !important; }
+    #report { display: block; font-size: 12px; color: #000; }
+    #report h1 { font-size: 22px; }
+    #report table th, #report table td { padding: 5px 6px; }
+  }
+</style>
+</head>
+<body>
+<header class="mtop">
+  <a class="brand" href="#dashboard" aria-label="Heat Risk Coach home"></a>
+  <nav><a href="#export">Export</a><a href="#about">About</a></nav>
+</header>
+<div class="app">
+  <aside class="rail">
+    <a class="brand" href="#dashboard"></a>
+    <nav class="nav" id="nav"></nav>
+    <div class="foot">Your logs stay on this device. Not medical advice. <a href="#about">How it works</a></div>
+  </aside>
+  <main id="view" tabindex="-1"></main>
+</div>
+<div id="report"></div>
+
+<script>
+/* ===================== storage ===================== */
+const KEY = "heat-risk-coach.v1";
+let db = { logs: [], feedback: {}, pending: null, location: null, onboarded: false, lastWeather: null };
+try { const s = localStorage.getItem(KEY); if (s) db = Object.assign(db, JSON.parse(s)); } catch (e) {}
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+
+/* ===================== helpers ===================== */
+const $ = (sel, el = document) => el.querySelector(sel);
+const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const r0 = n => Math.round(n);
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const fmtTime = iso => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const fmtDate = iso => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+const fmtWhen = iso => {
+  const d = new Date(iso), now = new Date();
+  const mins = (now - d) / 60000;
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${r0(mins)} min ago`;
+  if (d.toDateString() === now.toDateString()) return `today at ${fmtTime(iso)}`;
+  return `${fmtDate(iso)} at ${fmtTime(iso)}`;
+};
+const uid = () => Math.random().toString(36).slice(2, 10);
+const sorted = () => db.logs.slice().sort((a, b) => new Date(a.t) - new Date(b.t));
+const latest = () => sorted().at(-1) || null;
+const median = a => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+const ICON = {
+  logo: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1C3A3A"/><path d="M16 6a3 3 0 0 0-3 3v9.2a5 5 0 1 0 6 0V9a3 3 0 0 0-3-3z" fill="none" stroke="#39C2A8" stroke-width="2"/><circle cx="16" cy="22" r="2.6" fill="#F08A4B"/></svg>',
+  dash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  quick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v3h6V3M12 10v6M9 13h6"/></svg>',
+  hist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-6"/></svg>',
+  pat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="7" cy="16" r="2"/><circle cx="12" cy="9" r="2"/><circle cx="17" cy="13" r="2"/><circle cx="19" cy="5" r="1.5"/><path d="M4 21h17"/></svg>',
+  exp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>',
+  about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  temp: '<svg viewBox="0 0 24 24" fill="none" stroke="#3A6FB0" stroke-width="2" aria-hidden="true"><path d="M12 3a2.5 2.5 0 0 0-2.5 2.5v8.6a4.5 4.5 0 1 0 5 0V5.5A2.5 2.5 0 0 0 12 3z"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="#1C8C9E" stroke-width="2" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="#D2602A" stroke-width="2" aria-hidden="true"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 2 1.3 3 2.5 3 0-3-1-5-0-8z"/></svg>'
+};
+
+/* ===================== science ===================== */
+// NWS heat index (Rothfusz regression with NWS adjustments), °F.
+function heatIndex(T, RH) {
+  if (T == null || RH == null || isNaN(T) || isNaN(RH)) return null;
+  let hi = 0.5 * (T + 61 + (T - 68) * 1.2 + RH * 0.094);
+  if ((hi + T) / 2 >= 80) {
+    hi = -42.379 + 2.04901523 * T + 10.14333127 * RH - 0.22475541 * T * RH - 0.00683783 * T * T
+      - 0.05481717 * RH * RH + 0.00122874 * T * T * RH + 0.00085282 * T * RH * RH - 0.00000199 * T * T * RH * RH;
+    if (RH < 13 && T >= 80 && T <= 112) hi -= ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+    if (RH > 85 && T >= 80 && T <= 87) hi += ((RH - 85) / 10) * ((87 - T) / 5);
+  }
+  return Math.round(hi);
+}
+function nwsBand(hi) {
+  if (hi == null || hi < 80) return "Below caution";
+  if (hi < 91) return "Caution";
+  if (hi < 104) return "Extreme caution";
+  if (hi < 125) return "Danger";
+  return "Extreme danger";
+}
+const symptomTotal = l => (l.fatigue || 0) + (l.headache || 0) + (l.dizziness || 0) + (l.nausea || 0) + (l.cramps || 0);
+const symptomMax = l => Math.max(l.fatigue || 0, l.headache || 0, l.dizziness || 0, l.nausea || 0, l.cramps || 0);
+
+const EMERGENCY_FLAGS = { confusion: "Confusion or slurred speech", fainted: "Fainted or passed out", hotskin: "Hot, red skin that is dry or has stopped sweating", seizure: "Seizure", hightemp: "Body temperature 103°F or higher" };
+const URGENT_FLAGS = { vomiting: "Vomiting or can't keep fluids down" };
+
+// Heat index where this person usually starts to feel symptoms (needs 3+ logs with a symptom of 4 or more).
+function personalThreshold(logs) {
+  const hits = logs.filter(l => l.hi != null && symptomMax(l) >= 4).map(l => l.hi);
+  return hits.length >= 3 ? Math.round(median(hits)) : null;
+}
+
+function assess(l, history = sorted()) {
+  const factors = [];
+  const flags = l.flags || [];
+  const emergency = flags.some(f => EMERGENCY_FLAGS[f]);
+  const urgent = flags.some(f => URGENT_FLAGS[f]);
+  const hi = l.hi ?? heatIndex(l.temp, l.rh);
+  let pts = 0;
+  if (hi != null) {
+    let h = hi < 80 ? Math.max(0, hi - 70) * 0.5 : hi < 90 ? 5 + (hi - 80) * 1.5 : hi < 103 ? 20 + (hi - 90) * 1.54 : hi < 125 ? 40 + (hi - 103) * 1.36 : 75;
+    factors.push([`Heat index ${hi}°F`, h]); pts += h;
+    const th = personalThreshold(history.filter(x => x.id !== l.id));
+    if (th != null && hi >= th) { factors.push([`Above your usual symptom point (${th}°F)`, 8]); pts += 8; }
+  }
+  const hyd = { low: 12, medium: 4, high: 0 }[l.hydration] ?? 0;
+  if (hyd) { factors.push([`${l.hydration === "low" ? "Low" : "Medium"} hydration`, hyd]); pts += hyd; }
+  const out = Math.min(12, (l.outdoors || 0) / 10);
+  if (out >= 1) { factors.push([`${l.outdoors} min outdoors`, out]); pts += out; }
+  const act = { sedentary: 0, light: 2, moderate: 6, intense: 12 }[l.activity] ?? 0;
+  if (act) { factors.push([`${l.activity[0].toUpperCase() + l.activity.slice(1)} activity`, act]); pts += act; }
+  const sym = Math.min(35, (l.fatigue || 0) + (l.headache || 0) + (l.dizziness || 0) * 1.6 + (l.nausea || 0) * 1.6 + (l.cramps || 0) * 1.2);
+  if (sym >= 1) { factors.push(["Symptoms", sym]); pts += sym; }
+  const sl = l.sleep == null ? 0 : l.sleep <= 4 ? 5 : l.sleep <= 6 ? 2 : 0;
+  if (sl) { factors.push(["Poor sleep", sl]); pts += sl; }
+  let score = clamp(Math.round(pts), 0, 100);
+  if (urgent) score = Math.max(score, 75);
+  if (emergency) score = 100;
+  const level = emergency ? "Emergency" : score >= 75 ? "Very high" : score >= 50 ? "High" : score >= 25 ? "Moderate" : "Low";
+  // One-hour outlook if nothing changes: more time outside, fluids not topped up, symptoms tend to build.
+  let ahead = pts;
+  if ((l.outdoors || 0) > 0) ahead += Math.min(12, ((l.outdoors || 0) + 60) / 10) - out;
+  if (l.hydration !== "high") ahead += 4;
+  if (symptomTotal(l) > 0) ahead += 3;
+  const predicted = emergency ? 100 : clamp(Math.round(Math.max(ahead, urgent ? 75 : 0)), 0, 100);
+  return { hi, score, level, factors: factors.map(([k, v]) => [k, Math.round(v)]), emergency, urgent, predicted };
+}
+
+/* ===================== coach ===================== */
+const TIPS = {
+  hydrate: "Drink a full glass of water now, and keep sipping every 15 to 20 minutes while it's hot.",
+  cool: "Move somewhere cooler, like shade or air conditioning, and cool off with water on your neck and wrists.",
+  rest: "Take a 15-minute break from activity, and ease back in slowly.",
+  electrolytes: "Muscle cramps can mean you're low on salt. Have a sports drink or a salty snack with water.",
+  timing: "Plan outdoor time for early morning or evening, and avoid the hottest hours around midday.",
+  sleep: "You slept poorly, which lowers heat tolerance. Go easier today and take more breaks.",
+  layers: "Wear light, loose, light-colored clothing, and a hat if you're in the sun."
+};
+function rankTips(ids) {
+  const fbScore = id => { const f = db.feedback[id] || {}; return (f.better || 0) * 2 - (f.worse || 0) * 2 - (f.same || 0); };
+  return ids.slice().sort((a, b) => fbScore(b) - fbScore(a));
+}
+function coach(l, a, history) {
+  const out = [];
+  if (!l) return out;
+  // Reactive
+  if (a.emergency) out.push({ kind: "reactive", text: "These can be signs of heat stroke. Call 911 now, move to a cooler place, and cool down with wet cloths or cool water while you wait. Don't drink anything if you're confused or vomiting." });
+  else if (a.urgent) out.push({ kind: "reactive", text: "Vomiting in the heat needs medical help. Move somewhere cool and get help now, especially if symptoms get worse or last more than an hour." });
+  else if (((l.dizziness || 0) >= 5 || (l.nausea || 0) >= 5) && (a.hi ?? 0) >= 85) out.push({ kind: "reactive", tip: "cool", text: "You reported dizziness or nausea in high heat. " + TIPS.cool + " If it doesn't improve within an hour, get medical help." });
+  // Preventive
+  if (!a.emergency && !a.urgent) {
+    const ids = [];
+    if (l.hydration !== "high") ids.push("hydrate");
+    if ((l.cramps || 0) >= 3) ids.push("electrolytes");
+    if ((l.fatigue || 0) >= 4 || l.activity === "intense" || l.activity === "moderate") ids.push("rest");
+    if ((a.hi ?? 0) >= 90 && !out.some(x => x.tip === "cool")) ids.push("cool");
+    if ((l.sleep ?? 10) <= 4) ids.push("sleep");
+    if ((l.outdoors || 0) >= 45) ids.push("layers");
+    const th = personalThreshold(history.filter(x => x.id !== l.id));
+    if (th != null && (a.hi ?? 0) >= th - 3 && a.level !== "Low") ids.unshift("approach");
+    const ranked = rankTips(ids.filter(i => i !== "approach"));
+    if (ids[0] === "approach") out.push({ kind: "preventive", tip: ranked[0] || "hydrate", text: `You're near the heat level where you usually start feeling symptoms (about ${th}°F). ${TIPS[ranked[0] || "hydrate"]}` });
+    else if (ranked[0]) out.push({ kind: "preventive", tip: ranked[0], text: TIPS[ranked[0]] });
+    if (!ranked.length && a.level === "Low") out.push({ kind: "preventive", text: "Your risk is low right now. Keep water nearby and check in again if you'll be outside for a while." });
+  }
+  // Adaptive (patterns from history)
+  const p = patternsFor(history);
+  const ad = p.find(x => x.coach);
+  if (ad) out.push({ kind: "adaptive", tip: ad.tip, text: ad.coach });
+  return out.slice(0, 3);
+}
+
+function patternsFor(logs) {
+  const res = [];
+  if (logs.length < 5) return res;
+  const th = personalThreshold(logs);
+  if (th != null) res.push({ text: `You usually start feeling symptoms around a heat index of ${th}°F.`, coach: th < 90 ? `You tend to feel the heat earlier than most guidance assumes, around ${th}°F. Start hydrating and taking breaks before it gets that hot.` : null, tip: "hydrate" });
+  const hourOf = l => new Date(l.t).getHours();
+  const aft = logs.filter(l => hourOf(l) >= 12 && hourOf(l) < 18).map(symptomTotal);
+  const morn = logs.filter(l => hourOf(l) < 12).map(symptomTotal);
+  if (aft.length >= 2 && morn.length >= 2 && mean(aft) - mean(morn) >= 2) res.push({ text: `Your symptoms are worse in the afternoon (average ${mean(aft).toFixed(1)} vs ${mean(morn).toFixed(1)} in the morning).`, coach: "You tend to have more symptoms in the afternoon. Hydrate earlier in the day and limit time outside after noon.", tip: "timing" });
+  const lowH = logs.filter(l => l.hydration === "low").map(symptomTotal), hiH = logs.filter(l => l.hydration === "high").map(symptomTotal);
+  if (lowH.length >= 2 && hiH.length >= 2 && mean(lowH) - mean(hiH) >= 2) res.push({ text: `When your hydration is low, your symptoms average ${mean(lowH).toFixed(1)}, compared with ${mean(hiH).toFixed(1)} when it's high.`, coach: "Your logs show you feel noticeably worse on low-hydration days. Want to make water your first step whenever it's hot?", tip: "hydrate" });
+  const poor = logs.filter(l => (l.sleep ?? 10) <= 5).map(symptomTotal), good = logs.filter(l => (l.sleep ?? 0) >= 7).map(symptomTotal);
+  if (poor.length >= 2 && good.length >= 2 && mean(poor) - mean(good) >= 2) res.push({ text: `After poor sleep, your symptoms average ${mean(poor).toFixed(1)}, compared with ${mean(good).toFixed(1)} after good sleep.`, coach: "Heat hits you harder after a bad night's sleep. On those days, plan lighter activity.", tip: "sleep" });
+  const worked = Object.entries(db.feedback).filter(([, f]) => (f.better || 0) > (f.worse || 0) + (f.same || 0)).map(([id]) => id).filter(id => TIPS[id]);
+  if (worked.length) res.push({ text: "What has helped you before: " + worked.map(id => ({ hydrate: "drinking water", cool: "cooling off", rest: "taking breaks", electrolytes: "electrolytes", timing: "changing when you go out", sleep: "taking it easy after poor sleep", layers: "lighter clothing" }[id])).join(", ") + "." });
+  return res;
+}
+
+/* ===================== weather ===================== */
+async function fetchWeather(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&timezone=auto`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("weather");
+  const j = await r.json();
+  return { temp: Math.round(j.current.temperature_2m), rh: Math.round(j.current.relative_humidity_2m), at: new Date().toISOString() };
+}
+function locate() {
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) return rej(new Error("nogeo"));
+    navigator.geolocation.getCurrentPosition(p => res({ lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3), name: "Your location" }), rej, { timeout: 10000, maximumAge: 600000 });
+  });
+}
+async function findCity(q) {
+  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
+  const j = await r.json();
+  const c = (j.results || [])[0];
+  if (!c) throw new Error("nocity");
+  return { lat: c.latitude, lon: c.longitude, name: [c.name, c.admin1].filter(Boolean).join(", ") };
+}
+async function refreshWeather() {
+  if (!db.location) throw new Error("noloc");
+  const w = await fetchWeather(db.location.lat, db.location.lon);
+  db.lastWeather = Object.assign(w, { place: db.location.name });
+  persist();
+  return db.lastWeather;
+}
+const weatherFresh = () => db.lastWeather && (Date.now() - new Date(db.lastWeather.at)) < 30 * 60000;
+
+/* ===================== sample data ===================== */
+function makeSample() {
+  const logs = [];
+  const now = new Date();
+  for (let d = 13; d >= 0; d--) {
+    for (const hour of [9, 15]) {
+      const t = new Date(now); t.setDate(now.getDate() - d); t.setHours(hour, 10 + ((d * 7) % 40), 0, 0);
+      if (t > now) continue;
+      const hot = hour === 15;
+      const temp = Math.round((hot ? 86 : 76) + Math.sin(d / 2) * 5 + (d % 3));
+      const rh = Math.round((hot ? 52 : 64) + Math.cos(d) * 8);
+      const hydration = ["high", "medium", "low"][(d + (hot ? 1 : 0)) % 3];
+      const hi = heatIndex(temp, rh);
+      const base = Math.max(0, (hi - 84) / 3) + (hydration === "low" ? 2 : 0);
+      const l = {
+        id: uid(), t: t.toISOString(), temp, rh, hi, sample: true,
+        outdoors: hot ? 30 + (d % 4) * 15 : 10, hydration, activity: ["light", "sedentary", "moderate"][d % 3],
+        fatigue: clamp(Math.round(base + (hot ? 1 : 0)), 0, 9), headache: clamp(Math.round(base * 0.7), 0, 8), dizziness: clamp(Math.round(base * 0.4), 0, 7),
+        nausea: clamp(Math.round(base * 0.2), 0, 5), cramps: d % 5 === 0 && hot ? 3 : 0, sleep: [7, 5, 8, 4, 6][d % 5], flags: []
+      };
+      logs.push(l);
+    }
+  }
+  return logs;
+}
+
+/* ===================== views ===================== */
+const view = $("#view");
+const PAGES = [
+  ["dashboard", "Dashboard", "dash"], ["quick", "Quick log", "quick"], ["log", "Full log", "log"],
+  ["history", "History", "hist"], ["patterns", "Patterns", "pat"], ["export", "Export", "exp", "desk"], ["about", "About", "about", "desk"]
+];
+function renderNav(cur) {
+  $("#nav").innerHTML = PAGES.map(([id, name, ic, cls]) => `<a href="#${id}" class="${cls || ""}" ${cur === id ? 'aria-current="page"' : ""}>${ICON[ic]}<span>${name}</span></a>`).join("");
+  document.querySelectorAll(".brand").forEach(b => b.innerHTML = `${ICON.logo}<span><b>Heat Risk Coach</b><small>Adaptive heat safety</small></span>`);
+}
+
+function alertsFor(l, a) {
+  if (!l) return "";
+  const recent = (Date.now() - new Date(l.t)) < 6 * 3600000;
+  if (!recent) return "";
+  if (a.emergency) return `<div class="alert emergency" role="alert"><b>Call 911 now.</b><p>You logged ${esc((l.flags || []).filter(f => EMERGENCY_FLAGS[f]).map(f => EMERGENCY_FLAGS[f].toLowerCase()).join(", "))}. These can be signs of heat stroke. Move to a cooler place and cool down with wet cloths or cool water while you wait for help.</p><p><a href="tel:911">Call 911</a>&ensp;<a href="#about-firstaid">Heat illness first aid</a></p></div>`;
+  if (a.urgent) return `<div class="alert urgent" role="alert"><b>Get medical help.</b><p>Vomiting in the heat can mean heat exhaustion is getting worse. Move somewhere cool, and get help now, especially if symptoms get worse or last more than an hour.</p></div>`;
+  return "";
+}
+
+function renderDashboard() {
+  const logs = sorted(), l = latest();
+  const a = l ? assess(l, logs) : null;
+  const hasSample = logs.some(x => x.sample);
+  const w = db.lastWeather;
+  const live = w && weatherFresh();
+  const temp = live ? w.temp : l?.temp, rh = live ? w.rh : l?.rh;
+  const hiNow = heatIndex(temp, rh);
+  const condWhen = live ? `Live weather for ${esc(w.place)}, ${fmtWhen(w.at)}` : l ? `From your log ${fmtWhen(l.t)}` : "No conditions yet";
+  const stale = !live && l && (Date.now() - new Date(l.t)) > 6 * 3600000;
+  const markPos = hiNow == null ? null : clamp((hiNow - 80) / (140 - 80) * 100, 0, 100);
+  const tips = l ? coach(l, a, logs) : [];
+  const pend = db.pending && TIPS[db.pending.tip] && (db.pending.logId !== l?.id || Date.now() - new Date(db.pending.at) > 10 * 60000) ? db.pending : null;
+
+  view.innerHTML = `
+  ${alertsFor(l, a)}
+  ${hasSample ? `<div class="alert info sample-note"><span>You're looking at sample data so you can see how the app works.</span><span><button class="btn small" data-act="clear-sample">Clear sample data</button></span></div>` : ""}
+  <div class="page-head">
+    <div><h1>Dashboard</h1><p>Your personal heat risk at a glance</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="#quick">Quick log</a><a class="btn primary" href="#log">New full log</a></div>
+  </div>
+  ${!l ? `<div class="card empty"><h3>No logs yet</h3><p>Log how you feel and the conditions around you, and the coach will start learning your heat sensitivity.</p><p><a class="btn primary" href="#log">Add your first log</a> <button class="btn" data-act="sample">Try with sample data</button></p></div>` : `
+  <div class="grid g-top">
+    <section class="card" aria-labelledby="cond-h">
+      <h2 id="cond-h">Current conditions</h2>
+      <div class="cond">
+        <div class="metric"><span class="ic" style="background:#E9F0F9">${ICON.temp}</span><div><small>Temperature</small><b class="num">${temp ?? "—"}<span>°F</span></b></div></div>
+        <div class="metric"><span class="ic" style="background:#E3F3F5">${ICON.drop}</span><div><small>Humidity</small><b class="num">${rh ?? "—"}<span>%</span></b></div></div>
+        <div class="metric"><span class="ic" style="background:#FCEDE4">${ICON.flame}</span><div><small>Heat index</small><b class="num">${hiNow ?? "—"}<span>°F</span></b></div></div>
+      </div>
+      <div class="bands" aria-label="Heat index level: ${esc(nwsBand(hiNow))}">
+        <div class="bandmark">${markPos == null ? "" : `<span style="left:${markPos}%"></span>`}</div>
+        <div class="bandbar" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="bandlabels" aria-hidden="true"><span>Caution</span><span>Extreme caution</span><span>Danger</span><span>Extreme</span></div>
+      </div>
+      <div class="cond-foot"><span>${condWhen}${stale ? ". This log is old, so add a new one for an up-to-date risk." : ""}</span>
+        <span>${db.location ? `<button class="btn small" data-act="wx-refresh">Refresh weather</button>` : `<button class="btn small" data-act="wx-locate">Use live weather</button>`}</span></div>
+      <p class="small muted" id="wx-msg" role="status" style="margin:8px 0 0"></p>
+    </section>
+    <section class="risk" data-level="${a.level}" aria-labelledby="risk-h">
+      <h2 id="risk-h" style="color:var(--c);margin:0">Risk level</h2>
+      <div class="lvl">${a.level}</div>
+      <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${a.score}" aria-label="Risk score"><i style="width:${a.score}%"></i></div>
+      <div class="score num">Score ${a.score} of 100, from your log ${fmtWhen(l.t)}</div>
+      <ul class="factors">${a.factors.sort((x, y) => y[1] - x[1]).slice(0, 5).map(([k, v]) => `<li><span>${esc(k)}</span><b>+${v}</b></li>`).join("")}</ul>
+    </section>
+  </div>
+  <div class="grid g-2" style="margin-top:18px">
+    <section class="card" aria-labelledby="coach-h">
+      <h2 id="coach-h">Coach</h2>
+      <div class="tips">${tips.map(t => `<div class="tip ${t.kind}"><span class="tag">${t.kind}</span><p>${esc(t.text)}</p></div>`).join("") || `<p class="muted">Log a few more times and the coach will start spotting your patterns.</p>`}</div>
+      ${pend ? `<div class="followup"><p><b>Check-in:</b> earlier I suggested, "${esc(TIPS[pend.tip])}" Did it help?</p>
+        <div class="fb"><button class="btn small better" data-act="fb" data-v="better">Better</button><button class="btn small same" data-act="fb" data-v="same">No change</button><button class="btn small worse" data-act="fb" data-v="worse">Worse</button></div></div>` : ""}
+    </section>
+    <section class="card" aria-labelledby="pred-h">
+      <h2 id="pred-h">Next hour</h2>
+      <div class="predict"><div class="box"><small>Now</small><b class="num">${a.score}</b></div><span class="arrow" aria-hidden="true">→</span><div class="box"><small>In 1 hour</small><b class="num">${a.predicted}</b></div></div>
+      <p class="small muted" style="margin:12px 0 0">Estimate if nothing changes: you stay out, don't drink more water, and symptoms keep building.</p>
+      <h2 style="margin-top:22px">Recent trend</h2>
+      ${trendChart(logs.slice(-10), 200)}
+    </section>
+  </div>`}
+  `;
+  // remember the top tip so we can ask about it next time
+  const top = tips.find(t => t.tip);
+  if (top && (!db.pending || db.pending.logId !== l.id)) { db.pending = pend && pend.logId !== l.id ? pend : { tip: top.tip, logId: l.id, at: new Date().toISOString(), asked: false }; persist(); }
+}
+
+function trendChart(logs, h = 220) {
+  if (logs.length < 2) return `<p class="muted small">Your trend appears after two logs.</p>`;
+  const W = 640, H = h, L = 34, R = 10, T = 12, B = 34;
+  const xs = i => L + (i * (W - L - R)) / (logs.length - 1);
+  const y = v => T + (H - T - B) * (1 - v / 100);
+  const sc = logs.map(l => assess(l, sorted()).score);
+  const sy = logs.map(l => clamp(symptomTotal(l) * 2, 0, 100));
+  const path = arr => arr.map((v, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  const area = path(sc) + ` L${xs(sc.length - 1).toFixed(1)} ${y(0)} L${xs(0).toFixed(1)} ${y(0)} Z`;
+  const every = Math.max(1, Math.ceil(logs.length / 6));
+  const ticks = logs.map((l, i) => ((i % every === 0 && logs.length - 1 - i >= every / 2) || i === logs.length - 1) ? `<text x="${xs(i).toFixed(1)}" y="${H - 14}" text-anchor="${i === 0 ? "start" : i === logs.length - 1 ? "end" : "middle"}">${fmtDate(l.t)}</text><text x="${xs(i).toFixed(1)}" y="${H - 2}" text-anchor="${i === 0 ? "start" : i === logs.length - 1 ? "end" : "middle"}">${fmtTime(l.t)}</text>` : "").join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Risk score over your last ${logs.length} logs, oldest on the left">
+    ${[0, 25, 50, 75, 100].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#E6ECEE"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join("")}
+    <path d="${area}" fill="#127A6A" fill-opacity=".10"/>
+    <path d="${path(sc)}" fill="none" stroke="#127A6A" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="${path(sy)}" fill="none" stroke="#D99A1E" stroke-width="2" stroke-dasharray="5 4"/>
+    ${sc.map((v, i) => `<circle cx="${xs(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${i === sc.length - 1 ? 4.5 : 2.5}" fill="#127A6A"/>`).join("")}
+    ${ticks}
+  </svg>
+  <div class="legend"><span><i style="background:#127A6A"></i>Risk score</span><span><i style="background:#D99A1E"></i>Symptoms (scaled to 100)</span></div>`;
+}
+
+/* ----- full log ----- */
+let draft = null;
+function newDraft() {
+  const w = weatherFresh() ? db.lastWeather : null;
+  return { temp: w ? w.temp : "", rh: w ? w.rh : "", outdoors: "", hr: "", hydration: "medium", activity: "light", fatigue: 0, headache: 0, dizziness: 0, nausea: 0, cramps: 0, sleep: 7, flags: [] };
+}
+function renderLog() {
+  draft = draft || newDraft();
+  const d = draft;
+  const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, lab, sub]) => `<button type="button" data-seg="${key}" data-v="${v}" aria-pressed="${d[key] === v}">${lab}${sub ? `<small>${sub}</small>` : ""}</button>`).join("")}</div>`;
+  const slider = (key, lab) => `<div class="slider"><div class="top"><label for="s-${key}">${lab}</label><output id="o-${key}">${d[key]} of 10</output></div><input id="s-${key}" type="range" min="0" max="10" step="1" value="${d[key]}" data-sl="${key}" aria-describedby="o-${key}"></div>`;
+  view.innerHTML = `
+  <div class="page-head"><div><h1>Full log</h1><p>Record the conditions around you and how you feel</p></div></div>
+  <form class="form" id="logform" novalidate>
+    <section class="card">
+      <h2>Conditions</h2>
+      <div class="wx" style="margin-bottom:14px">
+        <button type="button" class="btn small" data-act="wx-fill">Fill from live weather</button>
+        <div class="city"><input type="text" id="city" placeholder="Or type a city or ZIP" aria-label="City or ZIP code"><button type="button" class="btn small" data-act="wx-city">Find</button></div>
+        <span class="msg" id="wx-msg" role="status">${db.location ? `Saved location: ${esc(db.location.name)}` : ""}</span>
+      </div>
+      <div class="fields">
+        <label class="f">Temperature (°F)<input type="number" inputmode="decimal" id="f-temp" value="${d.temp}" placeholder="e.g. 92"></label>
+        <label class="f">Humidity (%)<input type="number" inputmode="decimal" id="f-rh" value="${d.rh}" placeholder="e.g. 60"></label>
+        <label class="f">Time outdoors in the last 2 hours (min)<input type="number" inputmode="numeric" id="f-out" value="${d.outdoors}" placeholder="e.g. 30"></label>
+        <label class="f">Heart rate (beats per minute) <span class="h">Optional. From a watch, or count your pulse for 15 seconds and multiply by 4.</span><input type="number" inputmode="numeric" id="f-hr" value="${d.hr}" placeholder="e.g. 88"></label>
+        <div class="f" style="font-weight:600;font-size:14px;display:grid;gap:6px">Heat index<div style="font:700 24px/1.4 var(--display)" class="num" id="hi-out">${heatIndex(+d.temp || null, +d.rh || null) ?? "—"}${heatIndex(+d.temp || null, +d.rh || null) != null ? "°F" : ""}</div></div>
+      </div>
+      <div style="margin-top:16px;display:grid;gap:8px"><span style="font-weight:600;font-size:14px">Hydration</span>${seg("hydration", [["low", "Low", "Thirsty, little water"], ["medium", "Medium", "Some water"], ["high", "High", "Drinking regularly"]])}</div>
+      <div style="margin-top:16px;display:grid;gap:8px"><span style="font-weight:600;font-size:14px">Activity</span>${seg("activity", [["sedentary", "Resting", "Mostly sitting"], ["light", "Light", "Walking"], ["moderate", "Moderate", "Jogging, biking"], ["intense", "Intense", "Hard workout"]])}</div>
+    </section>
+    <section class="card">
+      <h2>Symptoms</h2>
+      <p class="small muted" style="margin:-6px 0 14px">0 means none, 10 means as bad as it gets.</p>
+      <div style="display:grid;gap:14px">${slider("fatigue", "Fatigue")}${slider("headache", "Headache")}${slider("dizziness", "Dizziness")}${slider("nausea", "Nausea")}${slider("cramps", "Muscle cramps")}</div>
+    </section>
+    <section class="card">
+      <h2>Warning signs</h2>
+      <p class="small muted" style="margin:-6px 0 14px">Check any that apply right now. Some of these mean you should call 911.</p>
+      <div class="checks">${Object.entries({ ...EMERGENCY_FLAGS, ...URGENT_FLAGS }).map(([k, v]) => `<label><input type="checkbox" data-flag="${k}" ${d.flags.includes(k) ? "checked" : ""}><span>${esc(v)}</span></label>`).join("")}</div>
+    </section>
+    <section class="card">
+      <h2>Recovery</h2>
+      ${slider("sleep", "Sleep quality last night")}
+    </section>
+    <p class="small" id="form-msg" role="alert" style="color:var(--vhigh);margin:0"></p>
+    <div><button class="btn primary" type="submit">Save and see my risk</button></div>
+  </form>`;
+}
+
+/* ----- quick log ----- */
+let qs = null;
+const QUICK = [
+  { key: "hydration", q: "How's your hydration?", opts: [["low", "Low"], ["medium", "Medium"], ["high", "High"]] },
+  { key: "fatigue", q: "How tired do you feel?", opts: [[0, "Not at all"], [3, "A little"], [6, "Quite tired"], [9, "Exhausted"]] },
+  { key: "head", q: "Any headache or dizziness?", opts: [[0, "None"], [3, "Mild"], [6, "Moderate"], [9, "Severe"]] },
+  { key: "outdoors", q: "Time outside in the last 2 hours?", opts: [[0, "None"], [15, "Under 30 min"], [45, "30 to 60 min"], [90, "Over an hour"]] }
+];
+function renderQuick() {
+  qs = qs || { step: 0, v: {} };
+  const s = QUICK[qs.step];
+  if (!s) return;
+  const w = weatherFresh() ? db.lastWeather : null, l = latest();
+  const condNote = w ? `Using live weather for ${esc(w.place)}: ${w.temp}°F, ${w.rh}% humidity.` : l ? `Using conditions from your last log (${l.temp}°F, ${l.rh}%). <a href="#" data-act="wx-quick">Use live weather instead</a>` : `No conditions yet. <a href="#" data-act="wx-quick">Use live weather</a> or <a href="#log">add a full log</a>.`;
+  view.innerHTML = `
+  <div class="quick">
+    <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Quick log</span><span class="num">${qs.step + 1} of ${QUICK.length}</span></div>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${QUICK.length}" aria-valuenow="${qs.step + 1}"><i style="width:${((qs.step + 1) / QUICK.length) * 100}%"></i></div>
+    <p class="q">${s.q}</p>
+    <div class="opts">${s.opts.map(([v, lab]) => `<button type="button" data-q="${v}">${lab}</button>`).join("")}</div>
+    <div class="row"><button class="btn ghost small" data-act="q-back" ${qs.step === 0 ? "disabled" : ""}>Back</button><a class="btn ghost small" href="#log">Feeling seriously unwell? Use the full log</a></div>
+    <p class="small muted" id="wx-msg" style="margin-top:24px">${condNote}</p>
+  </div>`;
+}
+function finishQuick() {
+  const w = weatherFresh() ? db.lastWeather : null, l = latest();
+  const temp = w ? w.temp : l?.temp, rh = w ? w.rh : l?.rh;
+  if (temp == null || rh == null) { draft = Object.assign(newDraft(), { hydration: qs.v.hydration, fatigue: +qs.v.fatigue, headache: +qs.v.head, dizziness: Math.round(+qs.v.head * 0.7), outdoors: +qs.v.outdoors }); qs = null; location.hash = "#log"; return; }
+  saveLog({ temp, rh, outdoors: +qs.v.outdoors, hydration: qs.v.hydration, activity: l?.activity || "light", fatigue: +qs.v.fatigue, headache: +qs.v.head, dizziness: Math.round(+qs.v.head * 0.7), nausea: 0, cramps: 0, sleep: l && (Date.now() - new Date(l.t)) < 16 * 3600000 ? l.sleep : null, flags: [], quick: true });
+  qs = null;
+}
+
+function saveLog(d) {
+  const l = Object.assign({ id: uid(), t: new Date().toISOString() }, d);
+  l.hi = heatIndex(l.temp, l.rh);
+  const a = assess(l, sorted());
+  l.score = a.score; l.level = a.level;
+  db.logs.push(l);
+  persist();
+  location.hash = "#dashboard";
+  if (location.hash === "#dashboard") route();
+}
+
+/* ----- history ----- */
+let confirmDel = null;
+function renderHistory() {
+  const logs = sorted();
+  view.innerHTML = `
+  <div class="page-head"><div><h1>History</h1><p>${logs.length} log${logs.length === 1 ? "" : "s"}, oldest to newest</p></div></div>
+  ${!logs.length ? `<div class="card empty"><h3>Nothing here yet</h3><p>Your logs will show up here.</p><a class="btn primary" href="#log">Add a log</a></div>` : `
+  <section class="card"><h2>Risk over time</h2>${trendChart(logs.slice(-30), 240)}${logs.length > 30 ? `<p class="small muted">Showing your last 30 logs.</p>` : ""}</section>
+  <section class="card flush" style="margin-top:18px"><div class="tablewrap"><table>
+    <thead><tr><th>When</th><th>Temp</th><th>Humidity</th><th>Heat index</th><th>Heart rate</th><th>Hydration</th><th>Symptoms</th><th>Risk</th><th></th></tr></thead>
+    <tbody>${logs.slice().reverse().map(l => {
+      const a = assess(l, logs);
+      return `<tr><td>${fmtDate(l.t)}, ${fmtTime(l.t)}${l.sample ? ' <span class="small muted">sample</span>' : ""}</td><td>${l.temp}°F</td><td>${l.rh}%</td><td>${l.hi ?? "—"}°F</td><td>${l.hr ? l.hr + " bpm" : "—"}</td><td>${l.hydration}</td><td>${symptomTotal(l)}</td><td><span class="pill" data-level="${a.level}">${a.level} ${a.level === "Emergency" ? "" : a.score}</span></td>
+      <td>${confirmDel === l.id ? `<button class="btn small danger" data-act="del-yes" data-id="${l.id}">Delete</button> <button class="btn small ghost" data-act="del-no">Keep</button>` : `<button class="btn small ghost" data-act="del" data-id="${l.id}" aria-label="Delete log from ${fmtDate(l.t)}">Delete</button>`}</td></tr>`;
+    }).join("")}</tbody></table></div></section>`}`;
+}
+
+/* ----- patterns ----- */
+function renderPatterns() {
+  const logs = sorted();
+  const ins = patternsFor(logs);
+  const W = 640, H = 240, L = 40, R = 12, T = 12, B = 34;
+  const withHi = logs.filter(l => l.hi != null);
+  const hiMin = Math.min(70, ...withHi.map(l => l.hi)), hiMax = Math.max(110, ...withHi.map(l => l.hi));
+  const x = v => L + (v - hiMin) / (hiMax - hiMin) * (W - L - R);
+  const symMax = Math.max(10, ...logs.map(symptomTotal));
+  const y = v => T + (H - T - B) * (1 - v / symMax);
+  const th = personalThreshold(logs);
+  const col = { low: "#D2602A", medium: "#B7810B", high: "#127A6A" };
+  const scatter = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Each log plotted by heat index and total symptoms">
+    ${[0, .25, .5, .75, 1].map(f => { const v = Math.round(symMax * f); return `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#E6ECEE"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`; }).join("")}
+    ${[80, 90, 103].filter(v => v > hiMin && v < hiMax).map(v => `<line x1="${x(v)}" x2="${x(v)}" y1="${T}" y2="${H - B}" stroke="#E6ECEE"/>`).join("")}
+    ${th != null ? `<line x1="${x(th)}" x2="${x(th)}" y1="${T}" y2="${H - B}" stroke="#55349A" stroke-dasharray="4 4"/><text x="${x(th) + 4}" y="${T + 10}" style="fill:#55349A">your symptom point ${th}°F</text>` : ""}
+    ${withHi.map(l => `<circle cx="${x(l.hi).toFixed(1)}" cy="${y(symptomTotal(l)).toFixed(1)}" r="5" fill="${col[l.hydration] || "#5A6A72"}" fill-opacity=".8"/>`).join("")}
+    ${[hiMin, 80, 90, 100, hiMax].filter((v, i, a) => a.indexOf(v) === i && v >= hiMin && v <= hiMax).map(v => `<text x="${x(v)}" y="${H - 12}" text-anchor="middle">${Math.round(v)}°F</text>`).join("")}
+  </svg>
+  <div class="legend"><span><i style="background:#D2602A"></i>Low hydration</span><span><i style="background:#B7810B"></i>Medium</span><span><i style="background:#127A6A"></i>High</span><span>Across: heat index. Up: total symptoms.</span></div>`;
+  view.innerHTML = `
+  <div class="page-head"><div><h1>Patterns</h1><p>What your own logs show about how heat affects you</p></div></div>
+  ${logs.length < 5 ? `<div class="card empty"><h3>Patterns need at least 5 logs</h3><p>You have ${logs.length}. Keep logging on hot days and the coach will start finding your patterns.</p><p><a class="btn primary" href="#log">Add a log</a> ${logs.length ? "" : '<button class="btn" data-act="sample">Try with sample data</button>'}</p></div>` : `
+  <div class="grid g-2">
+    <section class="card"><h2>What we've learned</h2>${ins.length ? `<ul class="insights">${ins.map(i => `<li>${esc(i.text)}</li>`).join("")}</ul>` : `<p class="muted">No clear patterns yet. They show up once there are enough logs at different heat levels.</p>`}</section>
+    <section class="card"><h2>Heat index guide</h2><table class="kv guide"><tbody>
+      <tr><td><span class="pill" data-level="Low">80–90°F</span></td><td>Caution: fatigue is possible with long exposure</td></tr>
+      <tr><td><span class="pill" data-level="Moderate">91–103°F</span></td><td>Extreme caution: heat cramps and heat exhaustion are possible</td></tr>
+      <tr><td><span class="pill" data-level="High">104–124°F</span></td><td>Danger: heat exhaustion likely, heat stroke possible</td></tr>
+      <tr><td><span class="pill" data-level="Very high">125°F+</span></td><td>Extreme danger: heat stroke highly likely</td></tr>
+    </tbody></table><p class="small muted" style="margin:10px 0 0">Ranges from the U.S. National Weather Service.</p></section>
+  </div>
+  <section class="card" style="margin-top:18px"><h2>Heat index vs. symptoms</h2>${scatter}</section>`}`;
+}
+
+/* ----- export ----- */
+let range = "30";
+function inRange(logs) { if (range === "all") return logs; const cut = Date.now() - (+range) * 86400000; return logs.filter(l => new Date(l.t) >= cut); }
+function csv(logs) {
+  const head = ["date", "time", "temperature_F", "humidity_pct", "heat_index_F", "time_outdoors_min", "heart_rate_bpm", "hydration", "activity", "fatigue", "headache", "dizziness", "nausea", "cramps", "sleep_quality", "warning_signs", "risk_score", "risk_level", "sample"];
+  const rows = logs.map(l => { const a = assess(l, sorted()); const d = new Date(l.t); return [d.toLocaleDateString("en-CA"), d.toTimeString().slice(0, 5), l.temp, l.rh, l.hi, l.outdoors ?? "", l.hr ?? "", l.hydration, l.activity, l.fatigue, l.headache, l.dizziness, l.nausea ?? 0, l.cramps ?? 0, l.sleep ?? "", (l.flags || []).join(";"), a.score, a.level, l.sample ? "yes" : "no"]; });
+  return [head, ...rows].map(r => r.map(v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(",")).join("\n");
+}
+function renderExport() {
+  const logs = inRange(sorted());
+  view.innerHTML = `
+  <div class="page-head"><div><h1>Export</h1><p>Download your logs to keep or share with your doctor</p></div></div>
+  <section class="card" style="max-width:760px">
+    <label class="f" style="max-width:260px">Date range<select id="range">${[["7", "Last 7 days"], ["30", "Last 30 days"], ["90", "Last 90 days"], ["all", "All time"]].map(([v, t]) => `<option value="${v}" ${range === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+    <p class="muted" style="margin:14px 0 18px">${logs.length ? `${logs.length} log${logs.length === 1 ? "" : "s"} in this range.` : "No logs in this range. Try a longer range."}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px"><button class="btn primary" data-act="csv" ${logs.length ? "" : "disabled"}>Download spreadsheet (.csv)</button><button class="btn" data-act="print" ${logs.length ? "" : "disabled"}>Print or save as PDF</button></div>
+    <p class="small muted" style="margin:16px 0 0">Reports include date, temperature, humidity, heat index, time outdoors, heart rate, hydration, activity, each symptom, sleep, warning signs and risk score.</p>
+  </section>
+  <section class="card" style="max-width:760px;margin-top:18px">
+    <h2>Your data</h2>
+    <p class="small muted" style="margin-top:0">Logs are saved only in this browser on this device. Nothing is sent to a server except your location, when you ask for live weather.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">${db.logs.some(l => l.sample) ? `<button class="btn small" data-act="clear-sample">Clear sample data</button>` : `<button class="btn small" data-act="sample">Add sample data</button>`}
+    ${confirmDel === "ALL" ? `<button class="btn small danger" data-act="wipe-yes">Yes, delete everything</button><button class="btn small ghost" data-act="del-no">Cancel</button>` : `<button class="btn small danger" data-act="wipe">Delete all my data</button>`}</div>
+  </section>`;
+}
+function printReport() {
+  const logs = inRange(sorted());
+  const pats = patternsFor(sorted());
+  $("#report").innerHTML = `<h1>Heat Risk Coach report</h1><p>${logs.length} logs, ${logs.length ? `${fmtDate(logs[0].t)} to ${fmtDate(logs.at(-1).t)}` : ""}. Printed ${new Date().toLocaleDateString()}.</p>
+  ${pats.length ? `<h3>Patterns</h3><ul>${pats.map(p => `<li>${esc(p.text)}</li>`).join("")}</ul>` : ""}
+  <table><thead><tr><th>Date</th><th>Temp</th><th>RH</th><th>HI</th><th>Out (min)</th><th>HR</th><th>Hydration</th><th>Fatigue</th><th>Headache</th><th>Dizzy</th><th>Nausea</th><th>Cramps</th><th>Sleep</th><th>Warning signs</th><th>Risk</th></tr></thead><tbody>
+  ${logs.map(l => { const a = assess(l, sorted()); return `<tr><td>${fmtDate(l.t)} ${fmtTime(l.t)}</td><td>${l.temp}</td><td>${l.rh}</td><td>${l.hi}</td><td>${l.outdoors ?? ""}</td><td>${l.hr ?? ""}</td><td>${l.hydration}</td><td>${l.fatigue}</td><td>${l.headache}</td><td>${l.dizziness}</td><td>${l.nausea ?? 0}</td><td>${l.cramps ?? 0}</td><td>${l.sleep ?? ""}</td><td>${esc((l.flags || []).map(f => EMERGENCY_FLAGS[f] || URGENT_FLAGS[f]).join("; "))}</td><td>${a.score} ${a.level}</td></tr>`; }).join("")}
+  </tbody></table><p>Symptoms are self-rated from 0 to 10. Generated by Heat Risk Coach. Not a diagnosis.</p>`;
+  window.print();
+}
+
+/* ----- about & welcome ----- */
+function renderAbout(welcome) {
+  view.innerHTML = welcome ? `
+  <div class="welcome">
+    <div class="brand" style="padding:0;margin-bottom:22px;color:var(--ink)">${ICON.logo}</div>
+    <h1>Heat Risk Coach</h1>
+    <p class="lead">Weather apps send everyone the same heat alert. This app learns how heat affects you, and coaches you before symptoms get worse.</p>
+    <ul>
+      <li>Log the conditions and how you feel. It takes about 20 seconds with the quick log.</li>
+      <li>Get a personal risk score that shows exactly what's driving it.</li>
+      <li>The coach learns your patterns, like the heat level where you start to feel symptoms.</li>
+      <li>Your logs stay on this device. They aren't sent anywhere.</li>
+    </ul>
+    <div class="actions"><button class="btn primary" data-act="start">Start my own log</button><button class="btn" data-act="sample">Try it with sample data</button></div>
+    <p class="small muted" style="margin-top:22px">A student project by Zoe Goudas for Health Tech Innovation at Rutgers University. Not medical advice. If you think someone has heat stroke, call 911.</p>
+  </div>` : `
+  <div class="page-head"><div><h1>About</h1><p>How the Heat Risk Coach works</p></div></div>
+  <div class="grid g-2">
+    <section class="card prose">
+      <h3 style="margin-top:0">Why it exists</h3>
+      <p>During a spring heat wave, temperatures reached 85°F for three days while the dorm air conditioning was still off. Weather apps sent the same alert to everyone, even though people react to heat very differently. This app learns each person's own sensitivity.</p>
+      <h3>How the risk score works</h3>
+      <p>The score adds up points from each factor, out of 100:</p>
+      <table class="kv"><tbody>
+        <tr><td>Heat index (NWS formula)</td><td>up to 75</td></tr>
+        <tr><td>Above your personal symptom point</td><td>+8</td></tr>
+        <tr><td>Hydration: low / medium</td><td>+12 / +4</td></tr>
+        <tr><td>Time outdoors</td><td>+1 per 10 min, up to 12</td></tr>
+        <tr><td>Activity: light / moderate / intense</td><td>+2 / +6 / +12</td></tr>
+        <tr><td>Symptoms (dizziness and nausea count more)</td><td>up to 35</td></tr>
+        <tr><td>Poor sleep</td><td>+2 to +5</td></tr>
+      </tbody></table>
+      <p>Levels: Low under 25, Moderate 25 to 49, High 50 to 74, Very high 75 and up. Any heat stroke warning sign sets the level to Emergency.</p>
+      <p>Heart rate is saved and included in exports for your doctor, but it doesn't change the score, because a normal heart rate depends on what you were doing.</p>
+      <h3>How the coach learns</h3>
+      <p>After 5 logs, the coach looks for patterns: the heat index where your symptoms usually start, whether afternoons are worse, and how hydration and sleep change how you feel. When it gives a tip, it asks later whether it helped, and puts the tips that work for you first.</p>
+      <h3>Privacy</h3>
+      <p>Everything is stored in this browser on this device. Live weather sends only your approximate location to Open-Meteo, a free weather service, to get the temperature and humidity.</p>
+      <p class="small muted">Built by Zoe Goudas for Topics in BME: Health Tech Innovation at Rutgers University. Not medical advice.</p>
+    </section>
+    <section class="card prose" id="about-firstaid">
+      <h3 style="margin-top:0">Heat illness first aid</h3>
+      <p><b>Heat stroke is an emergency. Call 911</b> if someone has:</p>
+      <ul><li>Body temperature of 103°F or higher</li><li>Hot, red, dry or damp skin</li><li>A fast, strong pulse</li><li>Confusion, or they pass out</li></ul>
+      <p>While waiting: move them somewhere cooler, and lower their temperature with cool cloths or a cool bath. Don't give them anything to drink.</p>
+      <p><b>Heat exhaustion</b> can include heavy sweating, cold and clammy skin, a fast weak pulse, nausea or vomiting, muscle cramps, tiredness, dizziness, headache or fainting.</p>
+      <p>Move to a cool place, loosen clothing, put cool wet cloths on the body, and sip water. <b>Get medical help right away</b> if they're vomiting, if symptoms get worse, or if symptoms last longer than an hour.</p>
+      <p class="small muted">Based on CDC guidance on heat-related illness.</p>
+    </section>
+  </div>`;
+}
+
+/* ===================== router ===================== */
+function route() {
+  document.body.classList.toggle("onb", !db.onboarded);
+  const id = (location.hash || "").replace("#", "").split("-")[0] || "";
+  if (!db.onboarded && id !== "about") { renderNav(""); renderAbout(true); return; }
+  const page = PAGES.some(p => p[0] === id) ? id : "dashboard";
+  renderNav(page);
+  if (page !== "log") draft = page === "log" ? draft : null;
+  if (page !== "quick") qs = null;
+  if (page !== "history" && page !== "export") confirmDel = null;
+  ({ dashboard: renderDashboard, quick: renderQuick, log: renderLog, history: renderHistory, patterns: renderPatterns, export: renderExport, about: () => renderAbout(false) })[page]();
+  if (location.hash === "#about-firstaid") $("#about-firstaid")?.scrollIntoView();
+  else window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+
+/* ===================== events ===================== */
+function wxMsg(t) { const m = $("#wx-msg"); if (m) m.textContent = t; }
+async function useLiveWeather(after) {
+  wxMsg("Finding your location…");
+  try {
+    if (!db.location) db.location = await locate();
+    wxMsg("Getting the weather…");
+    const w = await refreshWeather();
+    after && after(w);
+  } catch (e) {
+    wxMsg(e && e.code === 1 ? "Location is blocked. Type a city or ZIP in the full log instead." : e.message === "nogeo" ? "This browser can't share location. Type a city or ZIP in the full log." : "Couldn't get the weather right now. Try again, or enter it by hand.");
+    if (e && e.code) db.location = null;
+  }
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act],[data-seg],[data-q]");
+  if (!b) return;
+  if (b.dataset.seg) { draft[b.dataset.seg] = b.dataset.v; b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); return; }
+  if (b.dataset.q !== undefined) {
+    qs.v[QUICK[qs.step].key] = b.dataset.q;
+    if (qs.step < QUICK.length - 1) { qs.step++; renderQuick(); } else finishQuick();
+    return;
+  }
+  const act = b.dataset.act;
+  if (b.tagName === "A") e.preventDefault();
+  switch (act) {
+    case "start": db.onboarded = true; persist(); location.hash = "#log"; route(); break;
+    case "sample": db.logs = db.logs.filter(l => !l.sample).concat(makeSample()); db.onboarded = true; persist(); location.hash = "#dashboard"; route(); break;
+    case "clear-sample": db.logs = db.logs.filter(l => !l.sample); db.pending = null; persist(); route(); break;
+    case "wx-locate": case "wx-refresh": await useLiveWeather(() => renderDashboard()); break;
+    case "wx-quick": await useLiveWeather(() => renderQuick()); break;
+    case "wx-fill": await useLiveWeather(w => { draft.temp = w.temp; draft.rh = w.rh; $("#f-temp").value = w.temp; $("#f-rh").value = w.rh; updateHi(); wxMsg(`Filled from ${w.place}: ${w.temp}°F, ${w.rh}% humidity.`); }); break;
+    case "wx-city": {
+      const q = $("#city").value.trim();
+      if (!q) { wxMsg("Type a city or ZIP first."); break; }
+      wxMsg("Looking it up…");
+      try { db.location = await findCity(q); const w = await refreshWeather(); draft.temp = w.temp; draft.rh = w.rh; $("#f-temp").value = w.temp; $("#f-rh").value = w.rh; updateHi(); wxMsg(`Filled from ${w.place}: ${w.temp}°F, ${w.rh}% humidity.`); }
+      catch (err) { wxMsg(err.message === "nocity" ? `Couldn't find "${q}". Try a nearby city name.` : "Couldn't get the weather right now. Enter it by hand."); }
+      break;
+    }
+    case "q-back": if (qs.step > 0) { qs.step--; renderQuick(); } break;
+    case "fb": {
+      const p = db.pending; if (!p) break;
+      const f = db.feedback[p.tip] || (db.feedback[p.tip] = {});
+      f[b.dataset.v] = (f[b.dataset.v] || 0) + 1;
+      db.pending = Object.assign({}, p, { tip: "__answered" });
+      persist(); renderDashboard(); break;
+    }
+    case "del": confirmDel = b.dataset.id; renderHistory(); break;
+    case "del-no": confirmDel = null; route(); break;
+    case "del-yes": db.logs = db.logs.filter(l => l.id !== b.dataset.id); confirmDel = null; persist(); renderHistory(); break;
+    case "wipe": confirmDel = "ALL"; renderExport(); break;
+    case "wipe-yes": db = { logs: [], feedback: {}, pending: null, location: null, onboarded: true, lastWeather: null }; confirmDel = null; persist(); renderExport(); break;
+    case "csv": {
+      const blob = new Blob([csv(inRange(sorted()))], { type: "text/csv" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `heat-risk-log-${new Date().toLocaleDateString("en-CA")}.csv`;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); break;
+    }
+    case "print": printReport(); break;
+  }
+});
+function updateHi() {
+  const t = parseFloat($("#f-temp")?.value), h = parseFloat($("#f-rh")?.value);
+  const hi = heatIndex(isNaN(t) ? null : t, isNaN(h) ? null : h);
+  const o = $("#hi-out"); if (o) o.textContent = hi == null ? "—" : `${hi}°F`;
+}
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.sl) { draft[el.dataset.sl] = +el.value; $("#o-" + el.dataset.sl).textContent = `${el.value} of 10`; }
+  if (el.dataset.flag) { const k = el.dataset.flag; draft.flags = el.checked ? [...new Set([...draft.flags, k])] : draft.flags.filter(f => f !== k); }
+  if (el.id === "f-temp") { draft.temp = el.value; updateHi(); }
+  if (el.id === "f-rh") { draft.rh = el.value; updateHi(); }
+  if (el.id === "f-out") draft.outdoors = el.value;
+  if (el.id === "f-hr") draft.hr = el.value;
+  if (el.id === "range") { range = el.value; renderExport(); }
+});
+document.addEventListener("change", e => { if (e.target.id === "range") { range = e.target.value; renderExport(); } });
+document.addEventListener("submit", e => {
+  if (e.target.id !== "logform") return;
+  e.preventDefault();
+  const t = parseFloat(draft.temp), h = parseFloat(draft.rh), o = draft.outdoors === "" ? 0 : parseFloat(draft.outdoors);
+  const msg = $("#form-msg");
+  if (isNaN(t) || t < -30 || t > 135) { msg.textContent = "Enter a temperature between -30 and 135°F, or fill it from live weather."; $("#f-temp").focus(); return; }
+  if (isNaN(h) || h < 0 || h > 100) { msg.textContent = "Enter humidity as a percentage from 0 to 100."; $("#f-rh").focus(); return; }
+  if (isNaN(o) || o < 0 || o > 1440) { msg.textContent = "Enter time outdoors in minutes."; $("#f-out").focus(); return; }
+  const hr = draft.hr === "" ? null : parseFloat(draft.hr);
+  if (hr !== null && (isNaN(hr) || hr < 30 || hr > 230)) { msg.textContent = "Enter heart rate in beats per minute, between 30 and 230, or leave it blank."; $("#f-hr").focus(); return; }
+  saveLog({ temp: Math.round(t), rh: Math.round(h), outdoors: Math.round(o), hr: hr === null ? null : Math.round(hr), hydration: draft.hydration, activity: draft.activity, fatigue: draft.fatigue, headache: draft.headache, dizziness: draft.dizziness, nausea: draft.nausea, cramps: draft.cramps, sleep: draft.sleep, flags: draft.flags.slice() });
+  draft = null;
+});
+
+route();
+</script>
+</body>
+</html>
