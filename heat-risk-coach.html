@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adaptive heat risk coach | Zoe Goudas</title>
+<meta name="description" content="An AI app prototype that learns how a person reacts to heat and coaches them before symptoms get worse.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 18C12 12 13 6 16 3c3 3 4 9 0 15z' fill='%235B4B9A'/%3E%3Cpath d='M15 19C10 19 5 21 4 26c5 0 9-3 11-7zM17 19c5 0 10 2 11 7-5 0-9-3-11-7z' fill='%237D6CC0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F5F4F8;
+    --sheet: #FFFFFF;
+    --ink: #1F1A3A;
+    --muted: #5E5873;
+    --iris: #5B4B9A;
+    --petal: #E7E2F4;
+    --petal-deep: #CFC6EC;
+    --stem: #3F6B4E;
+    --rule: #D8D3E6;
+    --pollen: #E2B53E;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.6 "Figtree", system-ui, sans-serif; }
+  a { color: var(--iris); text-underline-offset: 3px; }
+  a:hover { color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--iris); outline-offset: 3px; border-radius: 2px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 56px; }
+  main { min-width: 0; }
+  [id] { scroll-margin-top: 24px; }
+
+  /* Table of contents: a progress rail that fills as you scroll */
+  .toc { order: 2; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 56px 0 32px; scrollbar-width: none; }
+  .toc::-webkit-scrollbar { display: none; }
+  .toc ol { list-style: none; margin: 0; padding: 0; }
+  .toc > ol { position: relative; padding-left: 22px; }
+  .toc .track, .toc .fill { position: absolute; left: 3px; top: 62px; bottom: 38px; width: 2px; border-radius: 2px; }
+  .toc .track { background: var(--rule); }
+  .toc .fill { background: var(--iris); transform-origin: top; transform: scaleY(var(--p, 0)); }
+  .toc a { position: relative; display: block; padding: 5px 0; color: var(--muted); text-decoration: none; font-size: 14px; line-height: 1.35; }
+  .toc a::before { content: ""; position: absolute; left: -22px; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--paper); border: 2px solid var(--rule); box-sizing: border-box; }
+  .toc a:hover { color: var(--ink); }
+  .toc a[aria-current="true"] { color: var(--ink); font-weight: 600; }
+  .toc a[aria-current="true"]::before { background: var(--iris); border-color: var(--iris); }
+  .toc a.top-l { font-family: "Young Serif", serif; font-size: 17px; color: var(--ink); padding-top: 8px; }
+  .toc a.top-l::before { top: 15px; }
+  .toc .grp { font-size: 12px; color: var(--muted); padding: 10px 0 2px; font-style: italic; }
+  .hero { display: grid; grid-template-columns: 1.3fr 1fr; align-items: end; gap: 24px; padding: 48px 0 24px; border-bottom: 1px solid var(--rule); }
+  .hero h1 { font-family: "Young Serif", serif; font-weight: 400; font-size: clamp(44px, 7vw, 76px); line-height: 1; letter-spacing: -0.02em; margin: 0 0 24px; }
+  .hero p.lede { font-size: 21px; max-width: 30ch; color: var(--muted); margin: 0 0 8px; }
+  .hero .links a { margin-right: 18px; font-weight: 600; }
+  .iris { width: 100%; max-width: 300px; justify-self: end; margin-bottom: -1px; }
+  .iris .line { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .iris .thin { stroke-width: 1; }
+  .iris .petal { fill: var(--petal); }
+  .iris .fall { fill: var(--petal-deep); }
+  .iris .leaf { fill: #DCE8DF; }
+  .iris .bell { fill: #FFFFFF; }
+  .iris .floret { stroke: var(--ink); stroke-width: .8; }
+  .iris .dot { fill: var(--pollen); }
+  .iris .beard { stroke: var(--pollen); stroke-width: 3; stroke-linecap: round; fill: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .iris .line { stroke-dasharray: 900; stroke-dashoffset: 900; animation: draw 2.4s ease-out forwards; }
+    .iris .petal, .iris .fall, .iris .leaf, .iris .beard, .iris .bell, .iris .dot { opacity: 0; animation: bloom 1s ease-out 1.6s forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes bloom { to { opacity: 1; } }
+  }
+  section { padding: 36px 0 8px; }
+  h2 { font-family: "Young Serif", serif; font-weight: 400; font-size: 36px; margin: 0 0 24px; }
+  .sheet { position: relative; background: var(--sheet); border: 1px solid var(--rule); padding: 28px 32px; margin-bottom: 20px; display: grid; grid-template-columns: 1.7fr 1fr; gap: 32px; align-items: start; }
+  .sheet .photo { grid-column: 1 / -1; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--rule); }
+  .group { font-family: "Young Serif", serif; font-weight: 400; font-size: 22px; color: var(--muted); margin: 56px 0 20px; }
+  .group:first-of-type { margin-top: 0; }
+  .sheet h4 { font-family: "Young Serif", serif; font-weight: 400; font-size: 28px; line-height: 1.2; margin: 0 0 12px; }
+  .sheet p { margin: 0 0 14px; max-width: 60ch; }
+  .more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; color: var(--iris); font-weight: 600; font-size: 15px; padding: 2px 0; }
+  .more summary::-webkit-details-marker { display: none; }
+  .more summary::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+  .more[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+  .more summary:hover { color: var(--ink); }
+  .more .close-l, .more[open] .open-l { display: none; }
+  .more[open] .close-l { display: inline; }
+  .more-body { padding-top: 12px; }
+  .more-body p:last-child { margin-bottom: 0; }
+  .sheet.solo { grid-template-columns: 1fr; }
+  .sheet.card { display: block; padding: 0; transition: border-color .15s; }
+  .sheet.card:hover { border-color: var(--iris); }
+  .card-link { display: block; padding: 28px 32px; color: inherit; text-decoration: none; }
+  .card-link .photo { display: block; margin-bottom: 20px; }
+  .card-link h4 { margin-bottom: 8px; }
+  .card-link .sum { color: var(--muted); margin: 0 0 14px; max-width: 62ch; }
+  .card-link .go { display: inline-flex; align-items: center; gap: 8px; color: var(--iris); font-weight: 600; font-size: 15px; }
+  .card-link .go::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+  .card-link:hover .go::after { transform: translateX(3px) rotate(-45deg); }
+  .card-link:hover h4 { color: var(--iris); }
+  .aside { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .aside .files { flex-direction: column; align-items: stretch; margin: 0; }
+  .aside .files a { display: flex; border-radius: 6px; padding: 9px 12px; }
+  .aside .files .ext { margin-left: auto; }
+  .files { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .files a { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-size: 14px; line-height: 1.3; }
+  .files a b { font-weight: 600; color: var(--iris); }
+  .files a:hover { border-color: var(--iris); }
+  .files .ext { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+  .label { border: 1px solid var(--ink); padding: 12px 16px; font-size: 14px; background: var(--sheet); }
+  .label dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0; }
+  .label dt { color: var(--muted); }
+  .label dd { margin: 0; }
+  .status { display: inline-block; font-size: 13px; font-weight: 600; color: var(--stem); margin-bottom: 10px; }
+  .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--stem); margin-right: 8px; vertical-align: 1px; }
+  .ems-intro p { margin: 0 0 16px; max-width: 60ch; }
+  .gallery { columns: 2 260px; column-gap: 20px; margin-top: 8px; }
+  .gallery figure { margin: 0 0 20px; break-inside: avoid; background: var(--sheet); border: 1px solid var(--rule); padding: 10px 10px 12px; }
+  .gallery a { display: block; }
+  .gallery img { display: block; width: 100%; height: auto; }
+  .gallery figcaption { font-size: 14px; color: var(--muted); padding-top: 8px; line-height: 1.45; }
+  .gallery .ph-box { aspect-ratio: 4 / 3; display: grid; place-items: center; border: 1px dashed var(--rule); background: var(--paper); color: var(--muted); font-size: 14px; }
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .about p { margin: 0 0 16px; max-width: 60ch; }
+  .about ul { list-style: none; padding: 0; margin: 0; }
+  .about li { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .about li:first-child { border-top: 1px solid var(--rule); }
+  section.contact { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 36px; padding-top: 36px; }
+  .contact h2 { font-size: 28px; margin: 0; }
+  .contact-line { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; font-size: 17px; }
+  footer { padding: 48px 0; color: var(--muted); font-size: 14px; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    [id] { scroll-margin-top: 64px; }
+    .toc { order: 0; z-index: 5; max-height: none; overflow: visible; padding: 12px 0 0; margin: 0 -24px; background: var(--paper); border-bottom: 1px solid var(--rule); }
+    .toc > ol { display: flex; align-items: center; gap: 20px; overflow-x: auto; white-space: nowrap; padding: 0 24px 12px; scrollbar-width: none; }
+    .toc > ol::-webkit-scrollbar { display: none; }
+    .toc li { display: contents; }
+    .toc ol ol { display: contents; }
+    .toc .grp { display: none; }
+    .toc a, .toc a.top-l { padding: 4px 0; font-size: 14px; }
+    .toc a.top-l { font-size: 15px; }
+    .toc a::before { display: none; }
+    .toc .track, .toc .fill { top: auto; bottom: -1px; left: 0; right: 0; width: auto; height: 2px; border-radius: 0; }
+    .toc .fill { transform-origin: left; transform: scaleX(var(--p, 0)); }
+  }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; padding-top: 24px; }
+    .iris { justify-self: start; max-width: 200px; order: -1; }
+    .sheet { grid-template-columns: 1fr; padding: 20px; }
+    .about { grid-template-columns: 1fr; gap: 24px; }
+  }
+</style>
+<style>
+  .pagewrap { max-width: 1120px; }
+  .ptop { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--rule); }
+  .ptop a { color: var(--muted); text-decoration: none; font-weight: 500; }
+  .ptop a:hover { color: var(--iris); }
+  .ptop .home { display: inline-flex; align-items: center; gap: 8px; font-family: "Young Serif", serif; font-size: 20px; color: var(--ink); font-weight: 400; }
+  .ptop .home svg { width: 22px; height: 22px; }
+  .phead { padding: 48px 0 36px; max-width: 780px; }
+  .kicker { font-family: "Young Serif", serif; color: var(--muted); font-size: 18px; margin: 0 0 10px; }
+  .phead h1 { font-family: "Young Serif", serif; font-weight: 400; font-size: clamp(34px, 5vw, 54px); line-height: 1.08; letter-spacing: -0.01em; margin: 0 0 14px; text-wrap: balance; }
+  .phead .lede { font-size: 20px; color: var(--muted); margin: 6px 0 0; max-width: 58ch; }
+  .pgrid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 56px; align-items: start; border-top: 1px solid var(--rule); padding-top: 40px; }
+  .pbody section { padding: 0; }
+  .pbody section + section { margin-top: 44px; }
+  .pbody h2 { font-size: 28px; margin: 0 0 14px; }
+  .pbody p { max-width: 66ch; margin: 0 0 14px; line-height: 1.7; }
+  .pbody figure { margin: 24px 0 0; }
+  .pbody figure img { display: block; width: auto; max-width: 100%; height: auto; border: 1px solid var(--rule); background: #fff; }
+  .pbody figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .pside { position: sticky; top: 24px; display: grid; gap: 14px; }
+  .docs-h { font-size: 20px; margin: 8px 0 0; }
+  .docs { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .doc { display: block; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink); text-decoration: none; overflow: hidden; transition: border-color .15s; }
+  .doc:hover { border-color: var(--iris); }
+  .doc img { display: block; width: 100%; height: auto; max-height: 240px; object-fit: cover; object-position: top; border-bottom: 1px solid var(--rule); background: #fff; }
+  .doc span { display: flex; align-items: baseline; gap: 6px; padding: 10px 12px; font-size: 14px; line-height: 1.35; }
+  .doc b { color: var(--iris); font-weight: 600; }
+  .doc .ext { margin-left: auto; font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+  .pnav { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid var(--rule); margin-top: 64px; padding-top: 8px; }
+  .pnav a { display: block; padding: 16px 0; color: var(--ink); text-decoration: none; font-family: "Young Serif", serif; font-size: 18px; line-height: 1.3; }
+  .pnav a:hover { color: var(--iris); }
+  .pnav small { display: block; font-family: "Figtree", system-ui, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .pnav .next { text-align: right; }
+  @media (max-width: 900px) {
+    .pgrid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+    .pside { position: static; order: -1; }
+    .docs { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap pagewrap">
+  <header class="ptop">
+    <a class="home" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 18C12 12 13 6 16 3c3 3 4 9 0 15z" fill="#5B4B9A"/><path d="M15 19C10 19 5 21 4 26c5 0 9-3 11-7zM17 19c5 0 10 2 11 7-5 0-9-3-11-7z" fill="#7D6CC0"/></svg>Zoe Goudas</a>
+    <a href="index.html#projects">All projects</a>
+  </header>
+
+  <main>
+    <div class="phead">
+      <p class="kicker">Rutgers University</p>
+      <h1>Adaptive heat risk coach</h1>
+      <p class="lede">An AI app prototype that learns how a person reacts to heat and coaches them before symptoms get worse.</p>
+    </div>
+
+    <div class="pgrid">
+      <article class="pbody">
+      <section>
+        <h2>Where the idea came from</h2>
+        <p>During a spring heat wave, temperatures reached 85°F for three days while our dorm's air conditioning was still off. I felt the effects myself and saw how hard it was on the people around me.</p>
+        <p>Weather apps send the same heat alert to everyone, but people react to heat very differently. I wanted an app that learns each person's own sensitivity.</p>
+      </section>
+
+      <section>
+        <h2>Who it's for</h2>
+        <p>The main users are heat-sensitive people: those with conditions such as migraines or POTS, athletes and outdoor workers. It's also useful for anyone during a heat wave.</p>
+      </section>
+
+      <section>
+        <h2>How it works</h2>
+        <p>Users log the temperature, humidity, time outdoors, hydration, activity level, symptoms like fatigue, headache and dizziness, and sleep quality. The app calculates the heat index and a personal risk score, and shows trends over time.</p>
+        <p>The system has three parts. The <i>brain</i> finds patterns between conditions and symptoms. I based its rules on conversations with friends and classmates about how heat affects them. The <i>skin</i> is the dashboard. The <i>coach</i> gives advice and then asks follow-up questions to learn what actually helps.</p>
+      </section>
+
+      <section>
+        <h2>The coach</h2>
+        <p><i>Preventive:</i> &quot;You're approaching your typical fatigue threshold. Drink water and eat a light snack.&quot;</p>
+        <p><i>Reactive:</i> &quot;You reported dizziness and high heat. Move to a cooler environment immediately.&quot;</p>
+        <p><i>Adaptive:</i> &quot;You tend to underhydrate in the afternoon. Would you like to set a reminder?&quot;</p>
+        <p>After each tip, it asks whether the symptoms got better, worse or stayed the same, and adjusts future advice.</p>
+      </section>
+
+      <section>
+        <h2>What's next</h2>
+        <p>Logging by hand is easy to forget and can be inaccurate. The next step is connecting wearables like an Apple Watch or Fitbit to track heart rate, skin temperature, sleep and activity automatically. Users can already export their logs to share with a doctor, and a future version could alert the doctor directly when it spots a high-risk pattern.</p>
+      </section>
+
+      <section>
+        <h2>What I learned</h2>
+        <p>AI was a great tool for building the app, since I don't have the coding skills to make one from scratch. It was much less useful for coming up with the idea. The ideas it suggested felt surface-level, and the real idea came from something I lived through.</p>
+      </section>
+      </article>
+      <aside class="pside">
+        <div class="label">
+          <dl>
+            <dt>Type</dt><dd>Course project</dd>
+            <dt>Course</dt><dd>Topics in BME: Health Tech Innovation</dd>
+            <dt>Team</dt><dd>Individual</dd>
+            <dt>Built with</dt><dd>HTML, CSS and JavaScript</dd>
+          </dl>
+        </div>
+        <h2 class="docs-h">Files</h2>
+        <ul class="docs">
+          <li><a class="doc plain" href="https://zoegoudas.github.io/heat-risk-coach/" target="_blank" rel="noopener"><span><b>App</b> Try the app</span></a></li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="pnav" aria-label="More projects">
+      <a class="prev" href="probiotic-hydrogel.html"><small>Previous project</small>Probiotic hydrogel for ulcerative colitis</a>
+      <a class="next" href="radish-germination.html"><small>Next project</small>Sound frequency and radish seed germination</a>
+    </nav>
+  </main>
+
+  <footer>Zoe Goudas</footer>
+</div>
+</body>
+</html>
